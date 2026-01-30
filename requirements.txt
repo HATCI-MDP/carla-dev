@@ -1,0 +1,7 @@
+# CARLA 0.9.16 Python client (install separately - requires Python 3.12)
+# pip install "C:\CARLA_0.9.16\PythonAPI\carla\dist\carla-0.9.16-cp312-cp312-win_amd64.whl"
+#
+numpy<2.0.0
+opencv-python
+pygame
+Pillow
