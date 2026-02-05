@@ -49,13 +49,13 @@ pip install -r requirements.txt
 With CARLA still running and a map loaded:
 
 ```powershell
-python scripts/run_carla_connection.py
+python scripts/connection.py
 ```
 
 You should see the CARLA server version and current map. To run a short vehicle + camera demo:
 
 ```powershell
-python scripts/run_carla_connection.py --demo
+python scripts/connection.py --demo
 ```
 
 ### 5. Ego camera in a separate window (autopilot)
@@ -63,7 +63,7 @@ python scripts/run_carla_connection.py --demo
 To see exactly what the car’s camera sees while the car drives itself:
 
 ```powershell
-python scripts/run_autopilot_camera.py
+python scripts/autopilot.py
 ```
 
 A separate OpenCV window shows the RGB camera feed (defaults: 120° FOV, ~5 MP). The vehicle drives on autopilot (view only). Press **q** or **ESC** to exit. Optional: `--map`, `--fov`, `--width`, `--height`.
@@ -71,7 +71,7 @@ A separate OpenCV window shows the RGB camera feed (defaults: 120° FOV, ~5 MP).
 To drive the car yourself (manual control), use CARLA’s official manual control (full HUD, keybinds, camera angles, reverse, hand-brake, etc.):
 
 ```powershell
-python scripts/run_carla_manual_control.py
+python scripts/manual_control.py
 ```
 
 Runs CARLA’s `manual_control.py` in **async mode** by default (no `--sync`), so it stays responsive. Press **H** or **?** in the window for the full key list (WASD/throttle/brake/steer, Q reverse, Space hand-brake, TAB camera, P autopilot, etc.).
@@ -85,9 +85,9 @@ python scripts/run_manual_drive.py
 **Other CARLA launchers** (run from project with your venv):
 
 - **Generate traffic** (NPC vehicles and pedestrians):
-  `python scripts/run_carla_generate_traffic.py`
+  `python scripts/generate_traffic.py`
 - **Automatic control** (autopilot agent + camera + HUD):
-  `python scripts/run_carla_automatic_control.py`
+  `python scripts/automatic_control.py`
 
 ### Troubleshooting
 

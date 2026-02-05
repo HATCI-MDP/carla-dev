@@ -4,7 +4,8 @@ Spawn a vehicle in CARLA and show its RGB camera feed in a separate OpenCV windo
 Car drives on autopilot (view only). Defaults match real-world camera: 120 deg FOV, ~5 MP RGB.
 
 Usage:
-    python scripts/run_autopilot_camera.py [--host 127.0.0.1] [--port 2000] [--map Town02] [--fov 120] [--width 2560] [--height 1920]
+    python scripts/autopilot.py [--host 127.0.0.1] [--port 2000] [--map Town02] [--vehicle vehicle.audi.tt] [--fov 120] ...
+    Use --vehicle random for a random vehicle, or a blueprint ID (e.g. vehicle.ford.mustang). Default: vehicle.audi.tt.
     Press 'q' or ESC in the camera window to exit.
 """
 
@@ -49,6 +50,12 @@ def main():
         help="Load this map (e.g. Town01, Town02, ... Town07). If omitted, use current map.",
     )
     parser.add_argument(
+        "--vehicle",
+        default="vehicle.audi.tt",
+        metavar="ID",
+        help="Vehicle blueprint ID (e.g. vehicle.audi.tt, vehicle.ford.mustang) or 'random'. Default: vehicle.audi.tt.",
+    )
+    parser.add_argument(
         "--fov",
         type=float,
         default=120.0,
@@ -86,7 +93,7 @@ def main():
         except RuntimeError as e:
             if "not found" in str(e).lower():
                 print("Map '%s' is not available in this CARLA build." % args.map)
-                print("Run: python scripts/list_carla_maps.py  (with CARLA running) to see available maps.")
+                print("Run: python scripts/list_maps.py  (with CARLA running) to see available maps.")
                 print("Base install usually has Town01–Town05; Town06/Town07 need the extra maps package.")
             raise
         finally:
@@ -103,7 +110,15 @@ def main():
         print("No vehicle blueprints found.")
         return 1
 
-    vehicle_bp = random.choice(vehicles)
+    if args.vehicle.lower() == "random":
+        vehicle_bp = random.choice(vehicles)
+        print("Selected random vehicle: %s" % vehicle_bp.id)
+    else:
+        vehicle_bp = blueprint_library.find(args.vehicle)
+        if vehicle_bp is None:
+            print("Vehicle '%s' not found. Use 'random' or a valid blueprint ID (e.g. vehicle.audi.tt, vehicle.ford.mustang)." % args.vehicle)
+            return 1
+        print("Using vehicle: %s" % vehicle_bp.id)
     transform = random.choice(spawn_points)
     vehicle = world.try_spawn_actor(vehicle_bp, transform)
     if vehicle is None:

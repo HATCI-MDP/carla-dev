@@ -4,7 +4,7 @@ Print the list of maps available on the running CARLA server.
 Run CARLA first (e.g. python scripts/start_carla.py), then run this in another terminal.
 
 Usage:
-    python scripts/list_carla_maps.py [--host 127.0.0.1] [--port 2000]
+    python scripts/list_maps.py [--host 127.0.0.1] [--port 2000]
 """
 
 import argparse

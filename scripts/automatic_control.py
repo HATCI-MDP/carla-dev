@@ -4,7 +4,7 @@ Launch CARLA's automatic_control.py: drive with an autopilot agent, camera view 
 Defaults to --loop so the car keeps getting new destinations instead of exiting after one.
 
 Usage:
-    python scripts/run_carla_automatic_control.py [--host 127.0.0.1] [--port 2000]
+    python scripts/automatic_control.py [--host 127.0.0.1] [--port 2000]
 
 Override CARLA install path with CARLA_ROOT env var, e.g.:
     set CARLA_ROOT=C:\CARLA_0.9.16

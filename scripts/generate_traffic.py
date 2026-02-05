@@ -3,7 +3,7 @@
 Launch CARLA's generate_traffic.py: spawn NPC vehicles and pedestrians in the world.
 
 Usage:
-    python scripts/run_carla_generate_traffic.py [--host 127.0.0.1] [--port 2000]
+    python scripts/generate_traffic.py [--host 127.0.0.1] [--port 2000]
 
 Override CARLA install path with CARLA_ROOT env var, e.g.:
     set CARLA_ROOT=C:\CARLA_0.9.16

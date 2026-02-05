@@ -5,10 +5,10 @@ reverse, hand-brake, autopilot toggle, weather, etc. Runs in async mode by defau
 (no --sync), so it stays responsive.
 
 Usage:
-    python scripts/run_carla_manual_control.py [--host 127.0.0.1] [--port 2000]
+    python scripts/manual_control.py [--host 127.0.0.1] [--port 2000]
 
 Defaults to sedan (vehicle.audi.a2). Override with --filter, e.g.:
-    python scripts/run_carla_manual_control.py --filter vehicle.tesla.model3
+    python scripts/manual_control.py --filter vehicle.tesla.model3
 
 Override CARLA install path with CARLA_ROOT env var, e.g.:
     set CARLA_ROOT=C:\CARLA_0.9.16

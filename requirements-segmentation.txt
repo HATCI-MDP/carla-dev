@@ -1,0 +1,15 @@
+# Dependencies for SegFormer (and other segmentation models).
+# Install after base setup: pip install -r requirements-segmentation.txt
+# Requires Python 3.12 and the CARLA wheel already installed.
+
+# SegFormer via Hugging Face Transformers
+torch
+transformers
+timm
+
+# Already in main requirements; listed here so a venv with only this file still works
+numpy<2.0.0
+Pillow
+
+# For manual_control_segformer_lite.py (WASD key state)
+pynput
