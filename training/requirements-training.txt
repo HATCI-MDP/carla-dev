@@ -1,0 +1,15 @@
+# Dependencies for fine-tuning SegFormer on Great Lakes.
+# Install after creating conda env: pip install -r requirements-training.txt
+# PyTorch with CUDA should be installed FIRST (see GREAT_LAKES_TRAINING.md).
+
+transformers>=4.35.0
+datasets>=2.14.0
+evaluate>=0.4.0
+accelerate>=0.24.0
+timm>=0.9.0
+Pillow>=9.0.0
+numpy<2.0.0
+scikit-learn>=1.0.0
+tensorboard>=2.14.0
+gdown>=4.7.0
+tqdm>=4.60.0
