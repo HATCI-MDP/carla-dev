@@ -150,6 +150,8 @@ def main():
     parser.add_argument("--save-steps", type=int, default=500, help="Save checkpoint every N steps")
     parser.add_argument("--eval-steps", type=int, default=500, help="Evaluate every N steps")
     parser.add_argument("--fp16", action="store_true", help="Use mixed precision (fp16)")
+    parser.add_argument("--gradient-checkpointing", action="store_true", help="Enable gradient checkpointing (saves GPU memory)")
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=1, help="Gradient accumulation steps (simulate larger batch)")
     parser.add_argument("--dataloader-workers", type=int, default=4, help="DataLoader workers")
     args = parser.parse_args()
 
@@ -233,6 +235,8 @@ def main():
         metric_for_best_model="mean_iou",
         greater_is_better=True,
         fp16=args.fp16 and torch.cuda.is_available(),
+        gradient_checkpointing=args.gradient_checkpointing,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
         dataloader_num_workers=args.dataloader_workers,
         remove_unused_columns=False,
         report_to="tensorboard",

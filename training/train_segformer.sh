@@ -6,6 +6,7 @@
 # LSA2 limits: 1 GPU, 2 cores, 10 GB RAM, 24 hr max, 1 job at a time.
 # We use SegFormer-B0 by default (fits in 10 GB). B2 may work with
 # batch-size 1 + fp16 but is tight. B5 will NOT fit.
+# Note: SegFormer does NOT support gradient checkpointing.
 #
 # BEFORE FIRST USE: Edit the WORK path further down to match your scratch dir.
 #
@@ -128,12 +129,13 @@ python "$SCRIPTS/train_segformer.py" \
     --model-name "$MODEL_NAME" \
     --output-dir "$OUTPUT_DIR" \
     --epochs 50 \
-    --batch-size 2 \
+    --batch-size 1 \
     --lr 6e-5 \
     --image-size 512 \
     --save-steps 500 \
     --eval-steps 500 \
     --fp16 \
+    --gradient-accumulation-steps 4 \
     --dataloader-workers 2
 
 EXIT_CODE=$?

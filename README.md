@@ -1,8 +1,8 @@
 # carla-dev
 
-Vision-based perception for soft road boundaries on unmarked dirt roads (HATCI off-road autonomy). This repo gets CARLA up and running with Python and will host the perception stack.
+Vision-based perception for soft road boundaries on unmarked dirt roads. This repo gets CARLA up and running with Python.
 
-**Full guide:** [docs/CARLA_AND_PERCEPTION_GUIDE.md](docs/CARLA_AND_PERCEPTION_GUIDE.md) — scripts, camera/map options, maps (including Town07 “not found”), and prototyping with pre-trained segmentation models.
+**Full guide:** [docs/CARLA_AND_PERCEPTION_GUIDE.md](docs/CARLA_AND_PERCEPTION_GUIDE.md) — scripts, camera/map options, maps, and prototyping with pre-trained segmentation models.
 
 ## Getting CARLA up and running (Python)
 
@@ -16,12 +16,6 @@ python scripts/start_carla.py
 
 This launches `CarlaUE4.exe` from `C:\CARLA_0.9.16` (override with the `CARLA_ROOT` environment variable if your install is elsewhere). The script blocks until you close CARLA.
 
-Alternatively, run the executable directly:
-
-```powershell
-C:\CARLA_0.9.16\CarlaUE4.exe
-```
-
 Wait until the Unreal Engine window opens and a town map is loaded. The server listens on `127.0.0.1:2000` by default.
 
 ### 2. Python environment
@@ -30,7 +24,7 @@ Wait until the Unreal Engine window opens and a town map is loaded. The server l
 - Create and activate a virtual environment (recommended):
 
 ```powershell
-cd c:\Users\ahowd\Documents\MDP\carla-dev
+cd c:\{path to carla-dev}\carla-dev
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
@@ -44,21 +38,7 @@ pip install "C:\CARLA_0.9.16\PythonAPI\carla\dist\carla-0.9.16-cp312-cp312-win_a
 pip install -r requirements.txt
 ```
 
-### 4. Test the connection
-
-With CARLA still running and a map loaded:
-
-```powershell
-python scripts/connection.py
-```
-
-You should see the CARLA server version and current map. To run a short vehicle + camera demo:
-
-```powershell
-python scripts/connection.py --demo
-```
-
-### 5. Ego camera in a separate window (autopilot)
+### 4. Ego camera in a separate window (autopilot)
 
 To see exactly what the car’s camera sees while the car drives itself:
 
@@ -74,14 +54,6 @@ To drive the car yourself (manual control), use CARLA’s official manual contro
 python scripts/manual_control.py
 ```
 
-Runs CARLA’s `manual_control.py` in **async mode** by default (no `--sync`), so it stays responsive. Press **H** or **?** in the window for the full key list (WASD/throttle/brake/steer, Q reverse, Space hand-brake, TAB camera, P autopilot, etc.).
-
-For a minimal manual drive (WASD + simple HUD only), use:
-
-```powershell
-python scripts/run_manual_drive.py
-```
-
 **Other CARLA launchers** (run from project with your venv):
 
 - **Generate traffic** (NPC vehicles and pedestrians):
@@ -94,14 +66,3 @@ python scripts/run_manual_drive.py
 - **Connection failed**: Ensure `CarlaUE4.exe` is running and you’ve selected/loaded a map. Ports 2000 and 2001 must not be blocked.
 - **ImportError: No module named 'carla'**: Install the `.whl` from step 3 (path must match your CARLA install).
 - **Wrong Python**: The provided wheel is for **Python 3.12** (`cp312`). Use `python --version` and switch to 3.12 if needed.
-
-## Project goals
-
-- Design and implement a vision-based perception stack (image processing + ML).
-- Detect and localize soft road boundaries without standard lane markings.
-- Validate on diverse dirt road scenarios; input images/video, output estimated boundaries.
-- Real-time display with a simple UI; optimize for lighting and terrain.
-
-Tech stack: Python/C++, OpenCV, PyTorch, Keras, TensorFlow.
-
-Stretch: drivable path within detected edges; detect potholes and ruts.
