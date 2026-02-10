@@ -131,6 +131,33 @@ def main():
     )
     args = parser.parse_args()
 
+    # Connect to CARLA FIRST (before model loading) to avoid stale connection / UE4 crash
+    print("Connecting to CARLA at %s:%d ..." % (args.host, args.port))
+    try:
+        client = carla.Client(args.host, args.port)
+        client.set_timeout(30.0)
+        client.get_server_version()
+    except RuntimeError as e:
+        print("Failed to connect: %s" % e)
+        print("Make sure CARLA is running (CarlaUE4.exe) and a map is loaded.")
+        return 1
+
+    if args.map:
+        print("Loading map: %s ..." % args.map)
+        client.set_timeout(120.0)
+        try:
+            client.load_world(args.map)
+        except RuntimeError as e:
+            if "not found" in str(e).lower():
+                print("Map '%s' not available. Run: python scripts/list_maps.py" % args.map)
+            raise
+
+    # Give large/streaming maps time to finish loading assets
+    client.set_timeout(30.0)
+    world = client.get_world()
+    time.sleep(2.0)
+
+    # Now load the model (after CARLA connection is stable)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Loading SegFormer model %s (device: %s) ..." % (args.model, device))
     print("(First run may download the model from Hugging Face.)")
@@ -142,30 +169,6 @@ def main():
     # Class id -> name from model config (for legend)
     id2label = getattr(model.config, "id2label", None) or {}
     id2label = {int(k): str(v) for k, v in id2label.items()}
-
-    print("Connecting to CARLA at %s:%d ..." % (args.host, args.port))
-    try:
-        client = carla.Client(args.host, args.port)
-        client.set_timeout(10.0)
-        client.get_server_version()
-    except RuntimeError as e:
-        print("Failed to connect: %s" % e)
-        print("Make sure CARLA is running (CarlaUE4.exe) and a map is loaded.")
-        return 1
-
-    if args.map:
-        print("Loading map: %s ..." % args.map)
-        client.set_timeout(90.0)
-        try:
-            client.load_world(args.map)
-        except RuntimeError as e:
-            if "not found" in str(e).lower():
-                print("Map '%s' not available. Run: python scripts/list_maps.py" % args.map)
-            raise
-        finally:
-            client.set_timeout(10.0)
-
-    world = client.get_world()
     blueprint_library = world.get_blueprint_library()
     spawn_points = world.get_map().get_spawn_points()
     if not spawn_points:
@@ -176,7 +179,7 @@ def main():
     if not vehicles:
         print("No vehicle blueprints found.")
         return 1
-    vehicle_bp = blueprint_library.find("vehicle.audi.tt")
+    vehicle_bp = blueprint_library.find("vehicle.dodge.charger_2020")
     if vehicle_bp is None:
         vehicle_bp = random.choice(vehicles)
     vehicle = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))

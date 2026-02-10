@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """
-Lite version of autopilot_segformer.py for lower-spec machines (e.g. MacBook, no GPU).
-- Smaller default resolution (320x240).
-- Runs inference every Nth frame (default 3); reuses last segmentation for other frames.
-- Sets initial window size so the window doesn't start as a tiny square.
+Manual drive + fine-tuned SegFormer (off-road models: RELLIS-3D, RUGD, etc.)
 
-Keep autopilot_segformer.py unchanged for use on a better PC with GPU.
+Same as manual_control_segformer_lite.py but with a palette derived from the
+model's id2label instead of the hardcoded ADE20K palette.  This ensures the
+segmentation colors match the actual class IDs the model predicts.
 
 Usage:
-    python scripts/autopilot_segformer_lite.py [--host 127.0.0.1] [--port 2000] [--map Town02] [--infer-every 5]
-    Press 'q' or ESC to exit.
+    python scripts/manual_control_finetuned.py [--model ./training/models]
+    python scripts/manual_control_finetuned.py --model ./models/rugd_segformer_b0
+    Controls: W=throttle, S=brake, A=left, D=right. Press 'q' or ESC to exit.
 """
 
 import argparse
@@ -36,11 +36,71 @@ except ImportError as e:
     print("Install: pip install -r requirements-segmentation.txt  and  pip install opencv-python")
     sys.exit(1)
 
+try:
+    from pynput import keyboard
+except ImportError:
+    print("pynput required for key state (WASD). Install: pip install pynput")
+    sys.exit(1)
 
-def _ade20k_palette():
-    palette = np.zeros((256, 3), dtype=np.uint8)
-    for i in range(256):
-        palette[i] = [(37 * i) % 256, (97 * i + 31) % 256, (157 * i + 67) % 256]
+
+# Hand-picked visually distinct colors for off-road classes (shared across RELLIS / RUGD).
+# Colors are in BGR order (OpenCV native) to avoid any RGB/BGR confusion.
+OFFROAD_COLORS_BGR = {
+    "dirt":       (43, 90, 139),
+    "grass":      (0, 160, 0),
+    "tree":       (34, 120, 34),
+    "pole":       (50, 50, 255),
+    "water":      (220, 100, 30),
+    "sky":        (235, 206, 135),
+    "vehicle":    (200, 0, 200),
+    "object":     (70, 130, 180),
+    "asphalt":    (80, 80, 80),
+    "building":   (150, 150, 150),
+    "log":        (0, 50, 100),
+    "person":     (100, 0, 255),
+    "fence":      (220, 150, 190),
+    "bush":       (100, 180, 0),
+    "concrete":   (170, 170, 170),
+    "barrier":    (0, 200, 255),
+    "puddle":     (180, 50, 50),
+    "mud":        (30, 60, 90),
+    "rubble":     (90, 120, 160),
+    "sign":       (50, 220, 255),
+    "rock":       (100, 128, 128),
+    "sand":       (160, 200, 220),
+    "gravel":     (130, 170, 180),
+    "mulch":      (40, 100, 160),
+    "rock-bed":   (80, 100, 110),
+    "bridge":     (140, 140, 100),
+    "trash":      (50, 200, 200),
+    "bicycle":    (200, 100, 255),
+}
+
+
+def build_palette_bgr(id2label, num_entries=256):
+    """Build an (N, 3) uint8 BGR palette from the model's id2label mapping.
+
+    Uses hand-picked BGR colors for known off-road classes and generates
+    visually distinct fallback colors for anything else.
+    All colors are in BGR order (OpenCV native).
+    """
+    palette = np.zeros((num_entries, 3), dtype=np.uint8)
+    used = set()
+    for idx, name in id2label.items():
+        key = name.lower().strip()
+        if key in OFFROAD_COLORS_BGR:
+            palette[idx] = OFFROAD_COLORS_BGR[key]
+            used.add(idx)
+    # Fallback: generate distinct colors for remaining IDs
+    for idx in range(num_entries):
+        if idx not in used:
+            # Use golden-ratio hue spacing for good separation
+            hue = int((idx * 137.508) % 180)
+            sat = 200
+            val = 220
+            hsv = np.uint8([[[hue, sat, val]]])
+            bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0, 0]
+            palette[idx] = bgr
     return palette
 
 
@@ -50,75 +110,92 @@ def carla_image_to_bgr(carla_image):
     return array[:, :, :3].copy()
 
 
-# Driving/outdoor-relevant ADE20K classes only (no ceiling, bed, cabinet, windowpane, etc.)
-LEGEND_CLASSES = frozenset([
-    "road", "sidewalk", "building", "sky", "tree", "grass", "earth", "path",
-    "car", "vehicle", "person", "pole", "fence", "wall", "plant", "bus", "truck",
-    "bicycle", "motorcycle", "traffic light", "traffic sign", "bridge", "water",
-    "rock", "stone", "sand", "ground", "terrain", "vegetation", "house",
-    "mountain", "sea", "field", "runway", "river", "tower", "skyscraper",
-    "floor", "pavement", "dirt", "mud", "snow", "lane", "dirt track",
-])
-
-def build_legend(id2label, palette, height, num_rows=20):
-    filtered = {i: n for i, n in id2label.items() if n.lower().strip() in LEGEND_CLASSES}
-    id2label = filtered if filtered else id2label
+def build_legend(id2label, palette, height, num_rows=25):
+    """Build a legend image showing all classes with their colors."""
     legend_width = 220
-    row_h = max(18, height // num_rows)
-    actual_rows = min(num_rows, len(id2label)) if id2label else 0
-    if actual_rows == 0:
+    num_items = len(id2label) if id2label else 0
+    if num_items == 0:
         legend = np.ones((height, legend_width, 3), dtype=np.uint8) * 240
         cv2.putText(legend, "No labels", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
         return legend
+    # Shrink row height to fit ALL classes within the available height
+    header_h = 26
+    row_h = max(10, (height - header_h) // num_items)
+    font_scale = 0.35 if row_h >= 14 else 0.28
     legend = np.ones((height, legend_width, 3), dtype=np.uint8) * 255
     cv2.putText(legend, "Class (id)", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-    items = sorted(id2label.items())[:actual_rows]
+    items = sorted(id2label.items())
     for i, (idx, name) in enumerate(items):
-        y = 36 + i * row_h
-        if y + row_h > height:
+        y = header_h + 10 + i * row_h
+        if y + 4 > height:
             break
         color = palette[idx % 256]
-        color_bgr = (int(color[2]), int(color[1]), int(color[0]))
-        cv2.rectangle(legend, (8, y - 14), (8 + 20, y + 2), color_bgr, -1)
-        cv2.rectangle(legend, (8, y - 14), (8 + 20, y + 2), (80, 80, 80), 1)
-        label = (name[:18] + "..") if len(name) > 18 else name
-        cv2.putText(legend, label, (34, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
+        color_bgr = (int(color[0]), int(color[1]), int(color[2]))  # already BGR
+        box_h = min(row_h - 2, 14)
+        cv2.rectangle(legend, (8, y - box_h), (8 + 16, y), color_bgr, -1)
+        cv2.rectangle(legend, (8, y - box_h), (8 + 16, y), (80, 80, 80), 1)
+        label = "%s (%d)" % (name[:14] if len(name) > 14 else name, idx)
+        cv2.putText(legend, label, (30, y - 1), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), 1)
     return legend
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Lite SegFormer on CARLA (small res, infer every Nth frame) for lower-spec machines."
+        description="Manual drive (WASD) + fine-tuned SegFormer (off-road palette)."
     )
     parser.add_argument("--host", default="127.0.0.1", help="CARLA server host")
     parser.add_argument("--port", type=int, default=2000, help="CARLA server port")
-    parser.add_argument("--map", metavar="NAME", default=None, help="Load this map (e.g. Town01, Town02).")
+    parser.add_argument("--map", metavar="NAME", default=None, help="Load this map (e.g. Town01, Town07_Opt).")
     parser.add_argument(
         "--model",
-        default="nvidia/segformer-b0-finetuned-ade-512-512",
-        help="Hugging Face model id",
+        default="./training/models/rellis3d",
+        help="Path to fine-tuned model directory (default: ./training/models/rellis3d)",
     )
-    parser.add_argument("--width", type=int, default=320, help="Camera width (default 320 for speed)")
+    parser.add_argument("--width", type=int, default=320, help="Camera width (default 320)")
     parser.add_argument("--height", type=int, default=240, help="Camera height (default 240)")
     parser.add_argument(
         "--infer-every",
         type=int,
         default=5,
         metavar="N",
-        help="Run model every Nth frame (default 5); reuse last segmentation otherwise",
+        help="Run model every Nth frame (default 5)",
     )
     parser.add_argument("--scale", type=float, default=1.5, help="Display scale factor (default 1.5)")
     parser.add_argument(
         "--no-thread",
         action="store_true",
-        help="Run inference in main loop (camera can stutter); default is background thread so camera updates smoothly",
+        help="Run inference in main loop (camera can stutter); default is background thread",
     )
     parser.add_argument(
         "--max-inference-fps",
         action="store_true",
-        help="Run inference as fast as possible (no throttle); highest inference FPS your GPU/CPU can do",
+        help="Run inference as fast as possible (no throttle)",
     )
     args = parser.parse_args()
+
+    # Global key state (pynput listener updates this)
+    pressed = set()
+    special_pressed = set()
+    reverse_on = [False]
+
+    def on_press(key):
+        try:
+            c = key.char.lower()
+            if c == "q":
+                reverse_on[0] = not reverse_on[0]
+            else:
+                pressed.add(c)
+        except AttributeError:
+            special_pressed.add(key)
+
+    def on_release(key):
+        try:
+            pressed.discard(key.char.lower())
+        except AttributeError:
+            special_pressed.discard(key)
+
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+    listener.start()
 
     # Connect to CARLA FIRST (before model loading) to avoid stale connection / UE4 crash
     print("Connecting to CARLA at %s:%d ..." % (args.host, args.port))
@@ -147,14 +224,19 @@ def main():
 
     # Now load the model (after CARLA connection is stable)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Loading SegFormer model %s (device: %s) ..." % (args.model, device))
+    print("Loading fine-tuned SegFormer from %s (device: %s) ..." % (args.model, device))
     processor = SegformerImageProcessor.from_pretrained(args.model)
     model = SegformerForSemanticSegmentation.from_pretrained(args.model)
     model.to(device)
     model.eval()
-    palette = _ade20k_palette()
+
+    # Build id2label and palette from the model config
     id2label = getattr(model.config, "id2label", None) or {}
     id2label = {int(k): str(v) for k, v in id2label.items()}
+    palette = build_palette_bgr(id2label)
+
+    num_classes = len(id2label)
+    print("Model classes (%d): %s" % (num_classes, ", ".join(id2label.values())))
     blueprint_library = world.get_blueprint_library()
     spawn_points = world.get_map().get_spawn_points()
     if not spawn_points:
@@ -179,24 +261,18 @@ def main():
         carla.Transform(carla.Location(x=2.8, z=1.2)),
         attach_to=vehicle,
     )
-    vehicle.set_autopilot(True)
 
     latest_frame = [None]
     def on_image(carla_image):
         latest_frame[0] = carla_image_to_bgr(carla_image)
     camera.listen(on_image)
 
-    window_name = "Autopilot + SegFormer (lite)"
+    window_name = "Manual + Fine-tuned SegFormer"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    # Initial window size so it doesn't start as a tiny square (camera|seg|legend ≈ 320+320+220, scaled)
     display_w = int((args.width * 2 + 220) * args.scale)
     display_h = int(args.height * args.scale)
     cv2.resizeWindow(window_name, display_w, display_h)
-    print("Running (infer every %d frames). Press 'q' or ESC to exit." % args.infer_every)
-    if not args.no_thread:
-        print("Inference runs in background so camera (left) updates at full rate.")
-    if args.max_inference_fps:
-        print("Max inference FPS: running model as fast as possible (no throttle).")
+    print("W=throttle, S=brake, A=left, D=right. Press 'q' or ESC in window to exit.")
 
     last_seg_bgr = [None]
     inference_timestamp = [None]
@@ -228,7 +304,7 @@ def main():
                 )
                 seg = logits.argmax(dim=1).squeeze(0).cpu().numpy()
                 seg_display = palette[seg % 256]
-                last_seg_bgr[0] = cv2.cvtColor(seg_display, cv2.COLOR_RGB2BGR)
+                last_seg_bgr[0] = seg_display  # palette is already BGR
                 t_now = time.perf_counter()
                 inference_timestamp[0] = t_now
                 if last_fps_timestamp[0] is not None:
@@ -248,6 +324,23 @@ def main():
     t_last_inference = None
     try:
         while True:
+            throttle = 0.6 if "w" in pressed else 0.0
+            brake = 0.5 if "s" in pressed else 0.0
+            steer = 0.0
+            if "a" in pressed:
+                steer = -0.6
+            if "d" in pressed:
+                steer = 0.6
+            hand_brake = keyboard.Key.space in special_pressed
+            ctrl = carla.VehicleControl(
+                throttle=throttle,
+                steer=steer,
+                brake=brake,
+                hand_brake=hand_brake,
+                reverse=reverse_on[0],
+            )
+            vehicle.apply_control(ctrl)
+
             bgr = latest_frame[0]
             if bgr is None:
                 key = cv2.waitKey(100) & 0xFF
@@ -274,7 +367,7 @@ def main():
                     )
                     seg = logits.argmax(dim=1).squeeze(0).cpu().numpy()
                     seg_display = palette[seg % 256]
-                    seg_bgr = cv2.cvtColor(seg_display, cv2.COLOR_RGB2BGR)
+                    seg_bgr = seg_display  # palette is already BGR
                     last_seg_bgr[0] = seg_bgr
                     t_now = time.perf_counter()
                     if t_last_inference is not None:
@@ -287,7 +380,7 @@ def main():
                 disp_fps = fps_smooth[0]
 
             if seg_bgr is not None:
-                legend = build_legend(id2label, palette, h, num_rows=20)
+                legend = build_legend(id2label, palette, h, num_rows=25)
                 combined = np.hstack([bgr, seg_bgr, legend])
                 if args.scale != 1.0:
                     new_w = int(combined.shape[1] * args.scale)
@@ -309,6 +402,7 @@ def main():
                 break
     finally:
         stop_inference.set()
+        listener.stop()
         cv2.destroyAllWindows()
         camera.stop()
         camera.destroy()

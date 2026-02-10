@@ -29,7 +29,7 @@ def main():
         return 1
     args = list(sys.argv[1:])
     if not any(a == "--filter" for a in args):
-        args.extend(["--filter", "vehicle.audi.a2"])  # sedan by default
+        args.extend(["--filter", "vehicle.dodge.charger_2020"])  # fast default
     rc = subprocess.call([sys.executable, MANUAL_CONTROL] + args)
     return rc
 
