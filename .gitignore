@@ -210,3 +210,6 @@ __marimo__/
 training/models/checkpoint-*/
 training/models/runs/
 training/models/training_args.bin
+
+# Large dataset zips (not needed in repo)
+*_processed.zip
