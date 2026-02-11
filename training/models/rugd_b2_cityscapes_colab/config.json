@@ -1,0 +1,120 @@
+{
+  "architectures": [
+    "SegformerForSemanticSegmentation"
+  ],
+  "attention_probs_dropout_prob": 0.0,
+  "classifier_dropout_prob": 0.1,
+  "decoder_hidden_size": 768,
+  "depths": [
+    3,
+    4,
+    6,
+    3
+  ],
+  "downsampling_rates": [
+    1,
+    4,
+    8,
+    16
+  ],
+  "drop_path_rate": 0.1,
+  "dtype": "float32",
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.0,
+  "hidden_sizes": [
+    64,
+    128,
+    320,
+    512
+  ],
+  "id2label": {
+    "0": "dirt",
+    "1": "sand",
+    "10": "mulch",
+    "11": "pole",
+    "12": "object",
+    "13": "building",
+    "14": "log",
+    "15": "person",
+    "16": "fence",
+    "17": "rock-bed",
+    "18": "sign",
+    "19": "bridge",
+    "2": "grass",
+    "20": "trash",
+    "21": "barrier",
+    "22": "bicycle",
+    "3": "tree",
+    "4": "bush",
+    "5": "concrete",
+    "6": "mud",
+    "7": "gravel",
+    "8": "water",
+    "9": "asphalt"
+  },
+  "image_size": 224,
+  "initializer_range": 0.02,
+  "label2id": {
+    "asphalt": 9,
+    "barrier": 21,
+    "bicycle": 22,
+    "bridge": 19,
+    "building": 13,
+    "bush": 4,
+    "concrete": 5,
+    "dirt": 0,
+    "fence": 16,
+    "grass": 2,
+    "gravel": 7,
+    "log": 14,
+    "mud": 6,
+    "mulch": 10,
+    "object": 12,
+    "person": 15,
+    "pole": 11,
+    "rock-bed": 17,
+    "sand": 1,
+    "sign": 18,
+    "trash": 20,
+    "tree": 3,
+    "water": 8
+  },
+  "layer_norm_eps": 1e-06,
+  "mlp_ratios": [
+    4,
+    4,
+    4,
+    4
+  ],
+  "model_type": "segformer",
+  "num_attention_heads": [
+    1,
+    2,
+    5,
+    8
+  ],
+  "num_channels": 3,
+  "num_encoder_blocks": 4,
+  "patch_sizes": [
+    7,
+    3,
+    3,
+    3
+  ],
+  "reshape_last_stage": true,
+  "semantic_loss_ignore_index": 255,
+  "sr_ratios": [
+    8,
+    4,
+    2,
+    1
+  ],
+  "strides": [
+    4,
+    2,
+    2,
+    2
+  ],
+  "transformers_version": "5.0.0",
+  "use_cache": false
+}

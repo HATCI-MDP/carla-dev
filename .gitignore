@@ -211,5 +211,12 @@ training/models/checkpoint-*/
 training/models/runs/
 training/models/training_args.bin
 
+# B2+ model weights are >100MB (GitHub limit). Keep on Google Drive.
+# B0 models (~14MB) are fine to commit.
+training/models/*_b2_*/model.safetensors
+training/models/*_b3_*/model.safetensors
+training/models/*_b4_*/model.safetensors
+training/models/*_b5_*/model.safetensors
+
 # Large dataset zips (not needed in repo)
 *_processed.zip
