@@ -23,10 +23,9 @@ This document covers: running CARLA, project scripts, camera and map options, an
 | `scripts/start_carla.py` | Start CARLA server (CarlaUE4.exe). Use `--headless` to run without the spectator window (cameras still work). |
 | `scripts/connection.py` | Test connection; `--demo` spawns vehicle + camera (default vehicle: Audi TT). Use `--vehicle <id>` or `--vehicle random`. |
 | `scripts/autopilot.py` | Ego RGB camera while car drives on autopilot. Defaults: 120° FOV, ~5 MP, sporty car (`vehicle.audi.tt`). Supports `--map`, `--vehicle`, `--fov`, `--width`, `--height`. |
-| `scripts/autopilot_segformer.py` | Run SegFormer (ADE20K) on the live ego camera; shows camera + segmentation side-by-side. Needs `pip install -r requirements-segmentation.txt`. |
-| `scripts/autopilot_segformer_lite.py` | Same as above but for lower-spec machines: smaller res (320×240), infer every 3rd frame, sensible window size. |
-| `scripts/manual_control_segformer.py` | Manual drive (WASD) + SegFormer; full res (640×480), every frame. For GPU. |
-| `scripts/manual_control_segformer_lite.py` | Manual drive (WASD) + SegFormer; lite (320×240, infer every 3rd frame). |
+| `scripts/autopilot_segformer.py` | Run SegFormer on the live ego camera; shows camera + segmentation side-by-side. Works with ADE20K and fine-tuned models. Use `--infer-every 5 --width 320 --height 240` for lower-spec machines. |
+| `scripts/autopilot_deeplabv3.py` | Run DeepLabV3+ (binary road detection) on the live ego camera; green road overlay. |
+| `scripts/manual_control_segformer.py` | Manual drive (WASD) + SegFormer. Works with ADE20K and fine-tuned models. Supports hand brake (SPACE), reverse (Q). |
 | `scripts/manual_control.py` | CARLA’s manual control (HUD, keybinds, camera angles, reverse). Defaults to sedan (`vehicle.audi.a2`). |
 | `scripts/generate_traffic.py` | Spawn NPC vehicles and pedestrians. |
 | `scripts/automatic_control.py` | Autopilot agent + camera + HUD. Uses `--loop` by default so it keeps driving to new targets. |

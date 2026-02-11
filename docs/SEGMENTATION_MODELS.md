@@ -55,22 +55,22 @@ Options: `--host`, `--port`, `--map Town02`, `--model nvidia/segformer-b0-finetu
 - `nvidia/segformer-b2-finetuned-ade-512-512` — better accuracy, slower.
 - `nvidia/segformer-b5-finetuned-ade-640-640` — highest accuracy (e.g. on ADE20K), slowest; needs a strong GPU.
 
-**Inference rate (FPS)** is the opposite of accuracy in practice: higher FPS usually means smaller model or lower resolution. To improve accuracy, use a larger model and/or higher `--width` / `--height` and accept lower FPS (or use `--infer-every` on lite scripts to keep the camera smooth).
+**Inference rate (FPS)** is the opposite of accuracy in practice: higher FPS usually means smaller model or lower resolution. To improve accuracy, use a larger model and/or higher `--width` / `--height` and accept lower FPS (or use `--infer-every` to keep the camera smooth).
 
-**Lite version (lower-spec / MacBook, no GPU):** Use `autopilot_segformer_lite.py` instead. It uses smaller default resolution (320×240), runs inference every 3rd frame (reuses last segmentation), and sets a sensible initial window size. Keeps `autopilot_segformer.py` unchanged for use on a better PC with GPU.
+**Lower-spec machines (MacBook, no GPU):** Use `--width 320 --height 240 --infer-every 5` to reduce load. Inference runs in a background thread by default so the camera stays smooth.
 
 ```powershell
-python scripts/autopilot_segformer_lite.py [--infer-every 3]
+python scripts/autopilot_segformer.py --width 320 --height 240 --infer-every 5
 ```
 
-**Manual drive + segmentation:** Use `manual_control_segformer.py` (full: 640×480, every frame; for GPU) or `manual_control_segformer_lite.py` (lite: 320×240, infer every 3rd frame). Requires `pynput` (included in `requirements-segmentation.txt`).
+**Manual drive + segmentation:** Use `manual_control_segformer.py`. Works with both ADE20K pretrained and fine-tuned off-road models. Requires `pynput` (included in `requirements-segmentation.txt`).
 
 ```powershell
 python scripts/manual_control_segformer.py
-python scripts/manual_control_segformer_lite.py
+python scripts/manual_control_segformer.py --model training/models/rellis3d_segformer_b0
 ```
 
-Controls: **W** = throttle, **S** = brake, **A** = left, **D** = right. Press **q** or **ESC** in the window to exit.
+Controls: **W** = throttle, **S** = brake, **A** = left, **D** = right, **SPACE** = hand brake, **Q** = toggle reverse. Press **q** or **ESC** in the window to exit.
 
 **FPS and speed:** All SegFormer CARLA scripts (autopilot and manual) show **FPS** and **Speed (km/h)** in the top-left of the window. No option to disable.
 
