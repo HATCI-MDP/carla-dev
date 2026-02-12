@@ -32,6 +32,7 @@ model = torch.load("training/models/deeplabv3_orfd/best_model.pth", map_location
 | `rellis3d_b0_ade_arc` | RELLIS-3D | B0 | ADE20K | 256 | 50 | 4 | 6e-5 | 0.484 | 0.595 | 0.844 | ARC (V100) | fp16, batch=1 x grad_accum=4 |
 | `rugd_b0_ade_arc` | RUGD | B0 | ADE20K | 256 | 50 | 4 | 6e-5 | 0.341 | 0.438 | 0.858 | ARC (V100) | fp16, batch=1 x grad_accum=4 |
 | `rugd_b2_cityscapes_colab` | RUGD | B2 | Cityscapes | 512 | 50 | 8 | 6e-5 | 0.370 | 0.469 | 0.872 | Colab (A100) | some classes have 0 predictions |
+| `rellis3d_b2_ade_colab` | RELLIS-3D | B2 | ADE20K | 768 | ~32/50 | 8 | 6e-5 | 0.447 | 0.572 | 0.870 | Colab (A100) | incomplete (checkpoint-26500), ran out of compute |
 
 > **Fill in results as runs complete.** Add new rows for each new training run.
 
